@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>G4vo-dev · bots de WhatsApp e automações com IA</title>
+<meta name="description" content="Desenvolvedor Node.js: bots de WhatsApp, automações com IA e sites. Projetos, serviços e contato.">
+<meta property="og:title" content="G4vo-dev · bots de WhatsApp e automações com IA">
+<meta property="og:description" content="Desenvolvedor Node.js: bots de WhatsApp, automações com IA e sites.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23b45309'/%3E%3Ctext x='50%25' y='56%25' text-anchor='middle' dominant-baseline='middle' font-family='monospace' font-size='34' font-weight='700' fill='white'%3E%23%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: coluna única e larga; a abertura mostra o nome à esquerda e uma conversa real com o bot à direita. */
+:root {
+  --fundo: #f4f5f7;
+  --superficie: #ffffff;
+  --tinta: #111418;
+  --tinta-2: #4b5260;
+  --linha: #dde0e6;
+  --destaque: #b45309;
+  --destaque-suave: #fcecd9;
+  --balao-voce: #fde7cf;
+  --balao-bot: #ffffff;
+  --ok: #15803d;
+  --aviso: #a16207;
+  --f-titulo: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-texto: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #0f1216;
+    --superficie: #171b21;
+    --tinta: #eef0f3;
+    --tinta-2: #a7aebb;
+    --linha: #2a3039;
+    --destaque: #f59e0b;
+    --destaque-suave: #2d2213;
+    --balao-voce: #3a2a14;
+    --balao-bot: #1e232b;
+    --ok: #4ade80;
+    --aviso: #facc15;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: var(--f-texto);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--destaque); outline-offset: 3px; border-radius: 6px; }
+.envelope {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { font-family: var(--f-titulo); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -0.02em; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+p { margin: 0; }
+.rotulo { font-family: var(--f-mono); font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--destaque); }
+
+/* ---------- topo ---------- */
+.topo { padding-block: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.marca { font-family: var(--f-mono); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; }
+.marca span.hash { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--destaque); color: var(--superficie); }
+.menu { display: flex; gap: 22px; font-size: 0.95rem; }
+.menu a { text-decoration: none; color: var(--tinta-2); }
+.menu a:hover { color: var(--tinta); }
+@media (max-width: 640px) { .menu { display: none; } }
+
+/* ---------- abertura ---------- */
+.abertura { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 56px; align-items: center; padding-block: 40px 72px; }
+.abertura h1 { font-size: clamp(2.6rem, 6.4vw, 4.6rem); font-weight: 800; letter-spacing: -0.035em; }
+.abertura h1 em { font-style: normal; color: var(--destaque); }
+.abertura .lede { margin-top: 22px; font-size: 1.15rem; color: var(--tinta-2); max-width: 34ch; }
+.acoes { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 12px; }
+.botao {
+  display: inline-flex; align-items: center; gap: 8px; padding: 13px 20px; border-radius: 12px;
+  font-weight: 600; text-decoration: none; border: 1.5px solid var(--tinta); transition: transform .15s ease;
+}
+.botao.cheio { background: var(--tinta); color: var(--fundo); }
+.botao:hover { transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) { .botao { transition: none; } .botao:hover { transform: none; } }
+.disponivel { margin-top: 26px; display: inline-flex; align-items: center; gap: 10px; font-size: 0.92rem; color: var(--tinta-2); }
+.disponivel::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 22%, transparent); }
+
+/* conversa de exemplo */
+.conversa {
+  background: var(--superficie); border: 1px solid var(--linha); border-radius: 22px; padding: 18px;
+  box-shadow: 0 24px 60px -30px rgba(17, 20, 24, 0.35); display: grid; gap: 10px; min-width: 0;
+}
+.conversa .cabeca { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--linha); font-size: 0.9rem; }
+.conversa .cabeca b { font-weight: 600; }
+.conversa .cabeca small { color: var(--ok); font-family: var(--f-mono); font-size: 0.75rem; }
+.conversa .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--destaque-suave); display: grid; place-items: center; font-size: 1rem; }
+.balao { max-width: 88%; padding: 10px 13px; border-radius: 14px; font-size: 0.9rem; line-height: 1.45; overflow-wrap: anywhere; }
+.balao.voce { justify-self: end; background: var(--balao-voce); border-bottom-right-radius: 4px; font-family: var(--f-mono); font-size: 0.84rem; }
+.balao.bot { justify-self: start; background: var(--balao-bot); border: 1px solid var(--linha); border-bottom-left-radius: 4px; }
+.balao.bot .aviso { color: var(--aviso); font-weight: 600; }
+.balao .hora { display: block; text-align: right; font-family: var(--f-mono); font-size: 0.68rem; color: var(--tinta-2); margin-top: 4px; }
+.legenda-conversa { font-size: 0.8rem; color: var(--tinta-2); text-align: center; }
+
+@media (max-width: 860px) {
+  .abertura { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-block: 20px 56px; }
+}
+
+/* ---------- seções ---------- */
+section.bloco { padding-block: 72px; border-top: 1px solid var(--linha); }
+.cabeca-bloco { display: grid; gap: 10px; margin-bottom: 36px; max-width: 60ch; }
+.cabeca-bloco p { color: var(--tinta-2); }
+
+.servicos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.servico { display: grid; gap: 10px; align-content: start; }
+.servico .icone { font-size: 1.6rem; }
+.servico p { color: var(--tinta-2); font-size: 0.98rem; }
+.servico ul { margin: 4px 0 0; padding-left: 1.1em; color: var(--tinta-2); font-size: 0.95rem; }
+@media (max-width: 860px) { .servicos { grid-template-columns: minmax(0, 1fr); } }
+
+.projeto-destaque {
+  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 36px; padding: 32px;
+  background: var(--superficie); border: 1px solid var(--linha); border-radius: 22px;
+}
+.projeto-destaque .texto { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.projeto-destaque .texto p { color: var(--tinta-2); }
+.numeros { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-content: start; }
+.numero { padding: 16px; border-radius: 14px; background: var(--fundo); }
+.numero b { display: block; font-family: var(--f-titulo); font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+.numero span { font-size: 0.85rem; color: var(--tinta-2); }
+.etiquetas { display: flex; flex-wrap: wrap; gap: 8px; }
+.etiquetas span { font-family: var(--f-mono); font-size: 0.75rem; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--linha); color: var(--tinta-2); }
+.links { display: flex; flex-wrap: wrap; gap: 18px; font-weight: 600; }
+.links a { text-decoration-color: var(--destaque); text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.projeto-menor { margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 28px; align-items: center; padding: 22px 32px; border: 1px solid var(--linha); border-radius: 18px; }
+.projeto-menor div { display: grid; gap: 4px; min-width: 0; }
+.projeto-menor p { color: var(--tinta-2); font-size: 0.95rem; }
+@media (max-width: 860px) {
+  .projeto-destaque { grid-template-columns: minmax(0, 1fr); padding: 22px; }
+  .projeto-menor { padding: 20px 22px; }
+}
+
+.passos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; counter-reset: passo; }
+.passos li { counter-increment: passo; display: grid; gap: 8px; align-content: start; padding-top: 18px; border-top: 3px solid var(--tinta); }
+.passos li::before { content: "0" counter(passo); font-family: var(--f-mono); font-size: 0.85rem; color: var(--destaque); font-weight: 600; }
+.passos p { color: var(--tinta-2); font-size: 0.95rem; }
+@media (max-width: 860px) { .passos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 520px) { .passos { grid-template-columns: minmax(0, 1fr); } }
+
+.contato { display: grid; gap: 22px; justify-items: start; }
+.contato h2 { font-size: clamp(2rem, 5vw, 3.4rem); }
+.contato p { color: var(--tinta-2); max-width: 52ch; }
+
+footer { padding-block: 32px 48px; border-top: 1px solid var(--linha); color: var(--tinta-2); font-size: 0.88rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+</style>
+</head>
+<body>
+<!--
+  PARA PERSONALIZAR: troque os valores em CONFIG, no fim da página.
+  O botão de e-mail e o de LinkedIn só aparecem depois que você preencher.
+-->
+<header class="envelope topo">
+  <a class="marca" href="#"><span class="hash" aria-hidden="true">#</span>G4vo-dev</a>
+  <nav class="menu" aria-label="seções">
+    <a href="#servicos">Serviços</a>
+    <a href="#projetos">Projetos</a>
+    <a href="#como-trabalho">Como trabalho</a>
+    <a href="#contato">Contato</a>
+  </nav>
+</header>
+
+<main>
+  <div class="envelope abertura">
+    <div>
+      <p class="rotulo">Desenvolvedor Node.js</p>
+      <h1 style="margin-top:14px">Bots de WhatsApp que <em>fazem o trabalho</em> por você.</h1>
+      <p class="lede">Eu crio bots e automações com IA para pequenos negócios: agendamento, atendimento, cobrança e controle financeiro, direto no chat.</p>
+      <div class="acoes">
+        <a class="botao cheio" href="#contato">Pedir orçamento</a>
+        <a class="botao" href="#projetos">Ver projetos</a>
+      </div>
+      <p class="disponivel">Aberto a freelas</p>
+    </div>
+
+    <figure class="conversa" style="margin:0" aria-label="exemplo de conversa com o assistente">
+      <div class="cabeca"><span class="avatar" aria-hidden="true">🤖</span><div><b>assistente</b><br><small>online</small></div></div>
+      <p class="balao voce">#despesa 1200 nubank 6x celular novo<span class="hora">20:41</span></p>
+      <div class="balao bot">🔴 despesa parcelada: celular novo<br>💸 6x de R$ 200,00 (total R$ 1.200,00)<br>💳 fatura nubank: R$ 200,00 (+ R$ 1.000,00 nos próximos meses)<span class="hora">20:41</span></div>
+      <p class="balao voce">#despesa 80 ifood pizza de sexta<span class="hora">20:43</span></p>
+      <div class="balao bot">🔴 despesa registrada: pizza de sexta · R$ 80,00<br><span class="aviso">⚠️ ifood chegou a 83% do limite este mês</span><span class="hora">20:43</span></div>
+      <figcaption class="legenda-conversa">Exemplo resumido do <a href="https://github.com/G4vo-dev/assistente-whatsapp">assistente-whatsapp</a>, tirado do modo demonstração</figcaption>
+    </figure>
+  </div>
+
+  <section class="bloco" id="servicos" aria-labelledby="t-servicos">
+    <div class="envelope">
+      <div class="cabeca-bloco">
+        <p class="rotulo">Serviços</p>
+        <h2 id="t-servicos">O que eu faço</h2>
+      </div>
+      <div class="servicos">
+        <div class="servico">
+          <span class="icone" aria-hidden="true">💬</span>
+          <h3>Bots de WhatsApp</h3>
+          <p>Atendimento automático que responde seus clientes a qualquer hora, direto no WhatsApp.</p>
+          <ul><li>agendamento e lembretes</li><li>cardápio, pedidos e catálogo</li><li>perguntas frequentes</li></ul>
+        </div>
+        <div class="servico">
+          <span class="icone" aria-hidden="true">🤖</span>
+          <h3>Automações com IA</h3>
+          <p>IA que entende texto, áudio, foto e PDF e faz a tarefa sozinha, com reserva automática se um serviço cair.</p>
+          <ul><li>ler comprovantes e notas</li><li>transcrever áudios</li><li>resumos e relatórios automáticos</li></ul>
+        </div>
+        <div class="servico">
+          <span class="icone" aria-hidden="true">🖥️</span>
+          <h3>Sites e landing pages</h3>
+          <p>Páginas rápidas e responsivas para apresentar seu negócio e levar o cliente até o WhatsApp.</p>
+          <ul><li>página de serviços ou produto</li><li>funciona bem no celular</li><li>publicada e pronta para divulgar</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloco" id="projetos" aria-labelledby="t-projetos">
+    <div class="envelope">
+      <div class="cabeca-bloco">
+        <p class="rotulo">Projetos</p>
+        <h2 id="t-projetos">Trabalho feito</h2>
+      </div>
+
+      <article class="projeto-destaque">
+        <div class="texto">
+          <h3>Assistente para WhatsApp</h3>
+          <p>Assistente pessoal completo que roda no próprio WhatsApp: finanças com cartões, parcelas, metas e limites; IA que entende áudio, foto e PDF de comprovante; figurinhas; lembretes; e resumos automáticos. Roda até num celular Android.</p>
+          <div class="etiquetas"><span>Node.js</span><span>Baileys</span><span>Groq</span><span>Gemini</span><span>ffmpeg</span><span>GitHub Actions</span></div>
+          <div class="links">
+            <a href="https://github.com/G4vo-dev/assistente-whatsapp">Código no GitHub ↗</a>
+            <a href="https://github.com/G4vo-dev/assistente-whatsapp#experimente-sem-whatsapp">Testar sem WhatsApp ↗</a>
+          </div>
+        </div>
+        <div class="numeros">
+          <div class="numero"><b>43</b><span>testes automáticos</span></div>
+          <div class="numero"><b>4</b><span>IAs com reserva automática</span></div>
+          <div class="numero"><b>40</b><span>comandos</span></div>
+          <div class="numero"><b>3</b><span>versões do Node testadas</span></div>
+        </div>
+      </article>
+
+      <article class="projeto-menor">
+        <div>
+          <h3>Landing page de filme</h3>
+          <p>Página responsiva com vídeo de fundo e trailer em janela. HTML, CSS e JavaScript.</p>
+        </div>
+        <div class="links"><a href="https://github.com/G4vo-dev/projeto-mario">Código ↗</a></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="bloco" id="como-trabalho" aria-labelledby="t-como">
+    <div class="envelope">
+      <div class="cabeca-bloco">
+        <p class="rotulo">Como trabalho</p>
+        <h2 id="t-como">Do primeiro contato à entrega</h2>
+      </div>
+      <ol class="passos">
+        <li><h3>Conversa</h3><p>Você conta o problema. Eu faço perguntas até entender o que vai economizar seu tempo.</p></li>
+        <li><h3>Orçamento</h3><p>Proposta com escopo, prazo e preço fechados, por escrito. Começo com 50% de entrada.</p></li>
+        <li><h3>Entrega</h3><p>Mostro funcionando antes de finalizar. Entrego com instruções e tudo documentado.</p></li>
+        <li><h3>Suporte</h3><p>Acompanho os primeiros dias e ofereço manutenção mensal, se você quiser.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="bloco" id="contato" aria-labelledby="t-contato">
+    <div class="envelope contato">
+      <p class="rotulo">Contato</p>
+      <h2 id="t-contato">Vamos automatizar alguma coisa?</h2>
+      <p>Me conte o que toma tempo no seu dia a dia. Respondo com uma ideia de solução e um orçamento.</p>
+      <div class="acoes">
+        <a class="botao cheio" id="botao-email" hidden>Mandar e-mail</a>
+        <a class="botao" id="botao-linkedin" hidden>LinkedIn</a>
+        <a class="botao" href="https://github.com/G4vo-dev">GitHub</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="envelope">
+  <span>© <span id="ano">2026</span> G4vo-dev</span>
+  <span>Feito à mão, publicado no GitHub Pages.</span>
+</footer>
+
+<script>
+  // ===== CONFIG: preencha e salve =====
+  const CONFIG = {
+    email: '',     // ex.: 'seunome.dev@gmail.com'
+    linkedin: '',  // ex.: 'https://www.linkedin.com/in/seu-perfil'
+  };
+  // ====================================
+
+  if (CONFIG.email) {
+    const b = document.getElementById('botao-email');
+    b.href = 'mailto:' + CONFIG.email + '?subject=' + encodeURIComponent('Orçamento de projeto');
+    b.hidden = false;
+  }
+  if (CONFIG.linkedin) {
+    const b = document.getElementById('botao-linkedin');
+    b.href = CONFIG.linkedin;
+    b.hidden = false;
+  }
+  document.getElementById('ano').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
