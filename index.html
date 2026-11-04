@@ -8,24 +8,27 @@
 <meta property="og:title" content="G4vo-dev · bots de WhatsApp e automações com IA">
 <meta property="og:description" content="Desenvolvedor Node.js: bots de WhatsApp, automações com IA e sites.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23b45309'/%3E%3Ctext x='50%25' y='56%25' text-anchor='middle' dominant-baseline='middle' font-family='monospace' font-size='34' font-weight='700' fill='white'%3E%23%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#f7f5fc" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%237f5af0'/%3E%3Ctext x='50%25' y='56%25' text-anchor='middle' dominant-baseline='middle' font-family='monospace' font-size='34' font-weight='700' fill='white'%3E%23%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* Layout: coluna única e larga; a abertura mostra o nome à esquerda e uma conversa real com o bot à direita. */
 :root {
-  --fundo: #f4f5f7;
+  /* Paleta do perfil do GitHub: roxo + rosa (Y2K) */
+  --fundo: #f7f5fc;
   --superficie: #ffffff;
-  --tinta: #111418;
-  --tinta-2: #4b5260;
-  --linha: #dde0e6;
-  --destaque: #b45309;
-  --destaque-suave: #fcecd9;
-  --balao-voce: #fde7cf;
+  --tinta: #16121f;
+  --tinta-2: #564f6b;
+  --linha: #e4def2;
+  --destaque: #6d3fd6;
+  --destaque-2: #c2257a;
+  --destaque-suave: #efe7ff;
+  --balao-voce: #f1e8ff;
   --balao-bot: #ffffff;
+  --sombra: rgba(76, 42, 160, 0.30);
   --ok: #15803d;
   --aviso: #a16207;
   --f-titulo: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
@@ -34,15 +37,17 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --fundo: #0f1216;
-    --superficie: #171b21;
-    --tinta: #eef0f3;
-    --tinta-2: #a7aebb;
-    --linha: #2a3039;
-    --destaque: #f59e0b;
-    --destaque-suave: #2d2213;
-    --balao-voce: #3a2a14;
-    --balao-bot: #1e232b;
+    --fundo: #0d1117;
+    --superficie: #161b22;
+    --tinta: #eeecf6;
+    --tinta-2: #aaa4be;
+    --linha: #2b2740;
+    --destaque: #a78bfa;
+    --destaque-2: #ff6ac1;
+    --destaque-suave: #241a3d;
+    --balao-voce: #2a1f45;
+    --balao-bot: #1c2029;
+    --sombra: rgba(0, 0, 0, 0.55);
     --ok: #4ade80;
     --aviso: #facc15;
     color-scheme: dark;
@@ -79,7 +84,7 @@ p { margin: 0; }
 /* ---------- topo ---------- */
 .topo { padding-block: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .marca { font-family: var(--f-mono); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; }
-.marca span.hash { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--destaque); color: var(--superficie); }
+.marca span.hash { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--destaque), var(--destaque-2)); color: #fff; }
 .menu { display: flex; gap: 22px; font-size: 0.95rem; }
 .menu a { text-decoration: none; color: var(--tinta-2); }
 .menu a:hover { color: var(--tinta); }
@@ -88,7 +93,7 @@ p { margin: 0; }
 /* ---------- abertura ---------- */
 .abertura { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 56px; align-items: center; padding-block: 40px 72px; }
 .abertura h1 { font-size: clamp(2.6rem, 6.4vw, 4.6rem); font-weight: 800; letter-spacing: -0.035em; }
-.abertura h1 em { font-style: normal; color: var(--destaque); }
+.abertura h1 em { font-style: normal; color: var(--destaque); background: linear-gradient(90deg, var(--destaque), var(--destaque-2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .abertura .lede { margin-top: 22px; font-size: 1.15rem; color: var(--tinta-2); max-width: 34ch; }
 .acoes { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 12px; }
 .botao {
@@ -104,7 +109,7 @@ p { margin: 0; }
 /* conversa de exemplo */
 .conversa {
   background: var(--superficie); border: 1px solid var(--linha); border-radius: 22px; padding: 18px;
-  box-shadow: 0 24px 60px -30px rgba(17, 20, 24, 0.35); display: grid; gap: 10px; min-width: 0;
+  box-shadow: 0 24px 60px -30px var(--sombra); display: grid; gap: 10px; min-width: 0;
 }
 .conversa .cabeca { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--linha); font-size: 0.9rem; }
 .conversa .cabeca b { font-weight: 600; }
@@ -157,7 +162,7 @@ section.bloco { padding-block: 72px; border-top: 1px solid var(--linha); }
 
 .passos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; counter-reset: passo; }
 .passos li { counter-increment: passo; display: grid; gap: 8px; align-content: start; padding-top: 18px; border-top: 3px solid var(--tinta); }
-.passos li::before { content: "0" counter(passo); font-family: var(--f-mono); font-size: 0.85rem; color: var(--destaque); font-weight: 600; }
+.passos li::before { content: "0" counter(passo); font-family: var(--f-mono); font-size: 0.85rem; color: var(--destaque-2); font-weight: 600; }
 .passos p { color: var(--tinta-2); font-size: 0.95rem; }
 @media (max-width: 860px) { .passos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 @media (max-width: 520px) { .passos { grid-template-columns: minmax(0, 1fr); } }
