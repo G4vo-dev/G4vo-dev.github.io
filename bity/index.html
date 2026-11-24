@@ -469,7 +469,7 @@ const totalPiggies = (until) => sum(S.piggies, p => piggyBalance(p.id, until));
 
 function invKey(card, d){
   let [y, m, day] = d.split('-').map(Number);
-  if (day >= card.closingDay){ m++; if (m > 12){ m = 1; y++; } }
+  if (day >= Math.min(card.closingDay, dim(y, m))){ m++; if (m > 12){ m = 1; y++; } }
   if (card.dueDay <= card.closingDay){ m++; if (m > 12){ m = 1; y++; } }
   return `${y}-${pad(m)}`;
 }
@@ -480,8 +480,10 @@ function invDates(card, key){
   const [cy, cm] = ck.split('-').map(Number);
   return {closing:iso(cy, cm, Math.min(card.closingDay, dim(cy, cm))), due};
 }
+// Compras importadas do bity trazem a fatura certa; as do app calculam pela data.
+const txInv = (card, t) => t.invoice || invKey(card, t.date);
 function invoiceInfo(card, key){
-  const items = S.tx.filter(t => t.type === 'card' && t.cardId === card.id && invKey(card, t.date) === key).sort((a, b) => b.date.localeCompare(a.date));
+  const items = S.tx.filter(t => t.type === 'card' && t.cardId === card.id && txInv(card, t) === key).sort((a, b) => b.date.localeCompare(a.date));
   const total = sum(items, t => t.amount);
   const payments = S.tx.filter(t => t.type === 'card_payment' && t.cardId === card.id && t.invoice === key);
   const paid = sum(payments, t => t.amount);
@@ -509,7 +511,7 @@ function cardUsed(card){
 const cardBoost = card => sum(S.piggies.filter(p => p.kind === 'limit' && p.cardId === card.id), p => Math.max(0, piggyBalance(p.id)));
 function invoiceKeys(card){
   const cur = invKey(card, todayISO()); let min = cur, max = shiftMonth(cur, 1);
-  for (const t of S.tx) if (t.cardId === card.id && t.type === 'card'){ const k = invKey(card, t.date); if (k < min) min = k; if (k > max) max = k; }
+  for (const t of S.tx) if (t.cardId === card.id && t.type === 'card'){ const k = txInv(card, t); if (k < min) min = k; if (k > max) max = k; }
   const out = []; for (let k = min; k <= max; k = shiftMonth(k, 1)) out.push(k);
   return out;
 }
@@ -518,7 +520,7 @@ function monthStats(k){
   for (const t of S.tx){
     if (monthOf(t.date) !== k) continue;
     if (t.type === 'income') inc += t.amount;
-    else if (t.type === 'expense' || t.type === 'card'){ exp += t.amount; const c = t.categoryId || 'none'; byCat[c] = (byCat[c] || 0) + t.amount; }
+    else if (t.type === 'expense' || (t.type === 'card' && t.amount > 0)){ exp += t.amount; const c = t.categoryId || 'none'; byCat[c] = (byCat[c] || 0) + t.amount; }
   }
   return {inc, exp, byCat};
 }
@@ -680,7 +682,7 @@ function alertsList(k){
   const out = [], today = todayISO();
   for (const b of budgetRows(k)) if (b.pct >= .8)
     out.push(`<div class="alert ${b.pct >= 1 ? 'bad' : 'warn'}">${I('alert')}<div class="grow"><b>${esc(b.c.name)}</b> ${b.pct >= 1 ? 'passou do limite' : 'está perto do limite'}: ${money(b.used)} de ${money(b.c.budget)} (${Math.round(b.pct * 100)}%).</div></div>`);
-  for (const c of S.cards) for (const key of invoiceKeys(c)){
+  for (const c of S.cards) if (!c.noDates) for (const key of invoiceKeys(c)){
     const inf = invoiceInfo(c, key);
     if (inf.status === 'vencida') out.push(`<div class="alert bad">${I('alert')}<div class="grow">Fatura de <b>${esc(c.name)}</b> venceu em ${fdate(inf.due)}. Faltam ${money(inf.rest)}. <button data-act="go-card" data-id="${c.id}" data-key="${key}">Ver fatura</button></div></div>`);
     else if (inf.status === 'fechada' && inf.due <= addDays(today, 7)) out.push(`<div class="alert warn">${I('cal')}<div class="grow">Fatura de <b>${esc(c.name)}</b> vence em ${fdate(inf.due)}: ${money(inf.rest)}. <button data-act="go-card" data-id="${c.id}" data-key="${key}">Pagar</button></div></div>`);
@@ -741,7 +743,7 @@ function upcomingBlock(){
   const today = todayISO(), lim = addDays(today, 45);
   const items = [];
   for (const t of S.tx) if (t.date > today && t.date <= lim && t.type !== 'card') items.push({date:t.date, html:txRow(t, 'all')});
-  for (const c of S.cards) for (const key of invoiceKeys(c)){
+  for (const c of S.cards) if (!c.noDates) for (const key of invoiceKeys(c)){
     const inf = invoiceInfo(c, key);
     if ((inf.status === 'aberta' || inf.status === 'fechada') && inf.rest > 0 && inf.due > today && inf.due <= lim)
       items.push({date:inf.due, html:`<button class="row-i" data-act="go-card" data-id="${c.id}" data-key="${key}"><span class="ic" style="background:${c.color}33;color:${c.color}">${I('card')}</span><span class="mid"><span class="t">Fatura ${esc(c.name)}</span><span class="s">Vence ${fdate(inf.due)} · ${STATUS[inf.status][0].toLowerCase()}</span></span><span class="end"><span class="money">− ${money(inf.rest)}</span></span></button>`});
@@ -753,8 +755,8 @@ function upcomingBlock(){
 
 /* ============ Gráficos (SVG) ============ */
 function catChart(st){
-  const items = Object.entries(st.byCat).map(([id, v]) => { const c = catOf(id); return {id, label:c ? c.name : 'Sem categoria', color:c ? c.color : '#64748b', value:v}; }).sort((a, b) => b.value - a.value);
-  const total = st.exp;
+  const items = Object.entries(st.byCat).map(([id, v]) => { const c = catOf(id); return {id, label:c ? c.name : 'Sem categoria', color:c ? c.color : '#64748b', value:v}; }).filter(i => i.value > 0).sort((a, b) => b.value - a.value);
+  const total = sum(items, i => i.value);
   if (!total) return `<div class="empty"><span>Nenhum gasto neste mês ainda.</span></div>`;
   const R = 70, C = 2 * Math.PI * R; let off = 0;
   const sel = items.find(i => i.id === UI.catSel);
@@ -804,7 +806,7 @@ function txInfo(t, ctx){
     case 'income': sub = `${c ? c.name : 'Sem categoria'} · ${accName(t.accountId)}`; sign = 1; cls = 'pos'; break;
     case 'expense': icon = 'up'; icBg = (c ? c.color : '#64748b') + '26'; icFg = c ? c.color : 'var(--muted)'; sub = `${c ? c.name : 'Sem categoria'} · ${accName(t.accountId)}`; sign = -1; break;
     case 'card': { const k = byId(S.cards, t.cardId); icon = 'card'; icBg = (c ? c.color : '#64748b') + '26'; icFg = c ? c.color : 'var(--muted)';
-      sub = `${c ? c.name : 'Sem categoria'} · ${k ? k.name : 'Cartão removido'}${t.instTotal > 1 ? ` · ${t.inst}/${t.instTotal}` : ''}`; tag = '<span class="tag t-cartao">Cartão</span>'; sign = -1; break; }
+      sub = `${c ? c.name : 'Sem categoria'} · ${k ? k.name : 'Cartão removido'}${t.instTotal > 1 ? ` · ${t.inst}/${t.instTotal}` : ''}`; tag = '<span class="tag t-cartao">Cartão</span>'; sign = t.amount < 0 ? 1 : -1; if (t.amount < 0) cls = 'pos'; break; }
     case 'card_payment': { const k = byId(S.cards, t.cardId); icon = 'card'; icBg = 'var(--surface-3)'; icFg = 'var(--muted)'; title = `Fatura ${k ? k.name : ''}`;
       sub = `${accName(t.accountId)} · fatura ${t.invoice ? mlabel(t.invoice) : ''}`; tag = '<span class="tag t-cartao">Pagamento</span>'; break; }
     case 'transfer': icon = 'swap'; icBg = 'rgba(125,211,252,.14)'; icFg = 'var(--info)'; sub = `${accName(t.accountId)} → ${accName(t.toAccountId)}`; tag = '<span class="tag t-transf">Transferência</span>'; break;
@@ -815,6 +817,7 @@ function txInfo(t, ctx){
       sub = p ? `Cofrinho ${p.name}` : accName(t.accountId); tag = '<span class="tag t-ajuste">Ajuste</span>'; break; }
   }
   let amt = t.amount;
+  if (t.type === 'card') amt = Math.abs(amt);
   if (ctx && ctx !== 'all'){ amt = accDelta(t, ctx); sign = Math.sign(amt); cls = amt > 0 ? 'pos' : ''; amt = Math.abs(amt); }
   else if (t.type === 'adjust'){ sign = Math.sign(t.amount); amt = Math.abs(t.amount); cls = t.amount > 0 ? 'pos' : ''; }
   else if (!sign) cls = 'muted';
@@ -879,6 +882,7 @@ function vCartoes(){
     return `<button class="ccard" data-act="card-sel" data-id="${k.id}" aria-pressed="${k.id === c.id}" style="background:linear-gradient(140deg,${k.color},color-mix(in srgb,${k.color} 45%,#000))"><span style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span><span class="nm" style="display:block">${esc(k.name)}</span><span class="hl">${esc(holderName(k.holderId))}</span></span><span class="chipi"></span></span>
     <span class="bt"><span><span class="hl" style="display:block">Disponível</span><b>${money(l - u)}</b></span><span class="hl">Vence dia ${k.dueDay}</span></span></button>`; }).join('')}
     <button class="ccard add" data-act="new-card">${I('plus')}Novo cartão</button></div>
+  ${c.noDates ? `<div class="alert warn">${I('cal')}<div class="grow">Este cartão veio do bity sem dia de fechamento e vencimento. <button data-act="edit-card" data-id="${c.id}">Cadastrar datas</button></div></div>` : ''}
   <div class="panel" style="display:flex;flex-direction:column;gap:10px">
     <div class="blk-h"><h2 style="font-size:15px">Limite</h2><button class="lnk" data-act="edit-card" data-id="${c.id}">Editar cartão</button></div>
     <div class="limit-bar" role="img" aria-label="Limite usado ${Math.round(pct(used))}%"><i style="width:${pct(used)}%;background:var(--neg)"></i><i style="width:${pct(Math.max(0, avail))}%;background:var(--accent)"></i></div>
@@ -1014,6 +1018,8 @@ function vDados(){
     <div class="muted" style="font-size:13.5px">Seus dados ficam só neste navegador. Último backup: <b>${lb}</b>.</div>
     <div class="btn-row"><button class="btn primary" data-act="export-json">Exportar backup (JSON)</button><button class="btn" data-act="import-json">Restaurar backup</button></div>
     <div class="btn-row"><button class="btn" data-act="export-csv">Exportar lançamentos (CSV)</button><button class="btn" data-act="import-csv">Importar CSV</button></div>
+    <div class="hint"><b>Vem do bity?</b> No WhatsApp mande <b>#backup</b> (ou use o arquivo que ele manda às 22h) e abra aqui em <b>Importar do bity</b>. O app passa a mostrar os dados do bot. O bot não muda.${S.source ? `<br>Última importação: backup de <b>${fdate(String(S.source.at).slice(0, 10))}</b>.` : ''}</div>
+    <div class="btn-row"><button class="btn primary" data-act="import-json">Importar do bity</button></div>
     <div class="faint" style="font-size:12.5px">CSV com ponto e vírgula, datas DD/MM/AAAA e valores 1.234,56 — abre direto no Excel e no Google Planilhas.</div>
   </div></section>
   <section class="blk"><div class="blk-h"><h2>Leitura de comprovantes</h2></div><div class="panel" style="display:flex;flex-direction:column;gap:10px">
@@ -1344,7 +1350,7 @@ function cardForm(k){
       const name = $('#f-name', r).value.trim(); if (!name) return 'Dê um nome ao cartão.';
       const limit = parseMoney($('#f-limit', r).value || '0'); if (isNaN(limit) || limit < 0) return 'Limite inválido.';
       const rec = {id:o.id || uid(), name, limit, holderId:$('#f-holder', r).value, closingDay:+$('#f-close', r).value, dueDay:+$('#f-due', r).value, payAccountId:$('#f-pay', r).value || null, color:o.color};
-      if (k) Object.assign(k, rec); else { S.cards.push(rec); UI.cardId = rec.id; }
+      if (k){ Object.assign(k, rec); delete k.noDates; } else { S.cards.push(rec); UI.cardId = rec.id; }
       UI.invoice = null; commit(k ? 'Cartão atualizado' : 'Cartão adicionado');
     },
     k ? async () => {
@@ -1485,11 +1491,125 @@ function importCSV(text){
 }
 async function importJSON(text){
   let data; try { data = JSON.parse(text); } catch (e){ return toast('Esse arquivo não é um backup válido.'); }
+  if (data && /^backup-(bity|meubot)$/.test(data.tipo)) return importBity(data);
   if (!data || !Array.isArray(data.tx) || !Array.isArray(data.accounts)) return toast('Esse arquivo não é um backup do bity.');
   if (!(await ask(`Restaurar o backup com ${data.tx.length} lançamentos? Os dados atuais serão substituídos.`, 'Restaurar', true))) return;
   const key = S.settings.aiKey;
   S = migrate(data); S.settings.aiKey = key; S.isSample = false;
   save(); applyTheme(); render(); toast('Backup restaurado');
+}
+
+/* ============ Importação do bity (bot do WhatsApp) ============ */
+// O bity é a fonte dos dados: importar troca os dados do app pelos do backup. O bot não é alterado.
+const capWords = s => String(s || '').replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+function bityToState(backup){
+  const fin = backup.financas || {};
+  if (fin.versao !== 3 || typeof fin.contas !== 'object') throw new Error('versao');
+  const keys = Object.keys(fin.contas);
+  if (!keys.length) throw new Error('vazio');
+  const key = fin.contas.eu ? 'eu' : keys.sort((a, b) => (fin.contas[b].transacoes || []).length - (fin.contas[a].transacoes || []).length)[0];
+  const c = fin.contas[key];
+  const st = defaultState();
+  const cents = v => Math.round(Number(v || 0) * 100);
+  st.holders = [{id:'h-eu', name:String(c.titular || 'Eu').slice(0, 40)}];
+  const accBy = {}, pigBy = {}, cardBy = {}, warn = [];
+  const mkAcc = nome => {
+    const n = norm(nome);
+    if (!accBy[n]){ const a = {id:uid(), name:capWords(nome), holderId:'h-eu', initial:0, color:PALETTE[st.accounts.length % PALETTE.length]}; st.accounts.push(a); accBy[n] = a.id; }
+    return accBy[n];
+  };
+  const mkCard = nome => {
+    const n = norm(nome || 'cartão');
+    if (!cardBy[n]){ const k = {id:uid(), name:capWords(n), holderId:'h-eu', limit:0, closingDay:1, dueDay:10, color:PALETTE[(st.cards.length + 4) % PALETTE.length], payAccountId:null, noDates:true}; st.cards.push(k); cardBy[n] = k; warn.push(`cartão ${k.name} sem limite e sem datas`); }
+    return cardBy[n];
+  };
+  const real = (c.bancos || []).filter(b => b.tipo !== 'cofrinho');
+  real.forEach(b => mkAcc(b.nome));
+  for (const k of c.cartoes || []){
+    const card = {id:uid(), name:capWords(k.nome), holderId:'h-eu', limit:cents(k.limite), closingDay:k.fechamento || 1, dueDay:k.vencimento || 10, color:PALETTE[(st.cards.length + 4) % PALETTE.length], payAccountId:null};
+    if (!k.fechamento){ card.noDates = true; warn.push(`cartão ${card.name} sem dia de fechamento`); }
+    st.cards.push(card); cardBy[norm(k.nome)] = card;
+  }
+  for (const b of (c.bancos || []).filter(b => b.tipo === 'cofrinho')){
+    const card = !b.apelido && b.cartao ? mkCard(b.cartao) : null;
+    const p = {id:uid(), name:b.apelido ? capWords(b.apelido) : 'Cofrinho ' + capWords(String(b.nome).replace(/^cofrinho-?/, '')),
+      kind:card ? 'limit' : 'common', cardId:card ? card.id : null, accountId:b.banco ? mkAcc(b.banco) : null, goal:0, color:PALETTE[(st.piggies.length + 2) % PALETTE.length]};
+    st.piggies.push(p); pigBy[norm(b.nome)] = p.id;
+  }
+  const principal = c.principal ? norm(c.principal) : real[0] ? norm(real[0].nome) : null;
+  const bankOf = t => t.banco ? norm(t.banco) : !real.length ? 'conta principal' : ({dinheiro:'carteira', vale:'vale'})[t.metodo] || principal || 'conta principal';
+  const where = t => { const n = bankOf(t); return pigBy[n] ? {pig:pigBy[n]} : {acc:mkAcc(n)}; };
+  const catId = (nome, kind) => {
+    let n = norm(nome || 'outros'); if (n === 'comida') n = 'alimentacao';
+    if (n === 'outros') return st.categories.find(x => x.kind === kind && norm(x.name).startsWith('outr')).id;
+    let cat = st.categories.find(x => x.kind === kind && norm(x.name) === n);
+    if (!cat){ cat = {id:uid(), name:capWords(nome), kind, budget:0, color:PALETTE[st.categories.length % PALETTE.length]}; st.categories.push(cat); }
+    return cat.id;
+  };
+  for (const l of c.limites || []) byId(st.categories, catId(l.categoria, 'expense')).budget = cents(l.valor);
+  const bityInv = (t, card) => t.fatura || (card.noDates ? t.data.slice(0, 7) : invKey(card, t.data));
+  const groups = {};
+  for (const t of c.transacoes || []) if (t.vinculo && !t.parcela) (groups[t.vinculo] = groups[t.vinculo] || []).push(t);
+  const used = new Set(), out = [];
+  const add = o => out.push(Object.assign({id:uid()}, o));
+  for (const t of c.transacoes || []){
+    if (used.has(t) || !(Number(t.valor) > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(t.data || '')) continue;
+    used.add(t);
+    const cat = norm(t.categoria), v = cents(t.valor);
+    const other = t.vinculo && !t.parcela ? (groups[t.vinculo] || []).find(x => !used.has(x) && x.tipo !== t.tipo) : null;
+    if (other && cat === 'entre-bancos' && norm(other.categoria) === 'entre-bancos' && t.metodo !== 'credito' && other.metodo !== 'credito'){
+      used.add(other);
+      const sai = t.tipo === 'despesa' ? t : other, ent = t.tipo === 'despesa' ? other : t, A = where(sai), B = where(ent), base = {date:sai.data, amount:v};
+      if (A.acc && B.acc){ if (A.acc !== B.acc) add({...base, type:'transfer', desc:'Transferência', accountId:A.acc, toAccountId:B.acc}); }
+      else if (A.acc && B.pig) add({...base, type:'piggy_in', desc:'', accountId:A.acc, piggyId:B.pig});
+      else if (A.pig && B.acc) add({...base, type:'piggy_out', desc:'', accountId:B.acc, piggyId:A.pig});
+      else { add({...base, type:'adjust', amount:-v, desc:'Saiu para outro cofrinho', piggyId:A.pig, accountId:null}); add({...base, type:'adjust', desc:'Veio de outro cofrinho', piggyId:B.pig, accountId:null}); }
+      continue;
+    }
+    if (other && cat === 'fatura' && (t.metodo === 'credito') !== (other.metodo === 'credito')){
+      used.add(other);
+      const pag = t.metodo === 'credito' ? other : t, abat = t.metodo === 'credito' ? t : other, card = mkCard(abat.cartao);
+      add({type:'card_payment', date:pag.data, amount:cents(pag.valor), desc:'Pagamento da fatura', cardId:card.id, invoice:bityInv(abat, card), accountId:where(pag).acc || null});
+      continue;
+    }
+    if (t.metodo === 'credito'){
+      const card = mkCard(t.cartao);
+      if (cat === 'fatura' && t.tipo === 'receita'){ add({type:'card_payment', date:t.data, amount:v, desc:t.descricao || 'Pagamento da fatura', cardId:card.id, invoice:bityInv(t, card), accountId:null}); continue; }
+      const p = t.parcela && t.parcela.total > 1 ? t.parcela : null;
+      add({type:'card', date:t.data, amount:t.tipo === 'receita' ? -v : v, desc:capWords(t.descricao).slice(0, 80), categoryId:catId(t.categoria, 'expense'), cardId:card.id,
+        invoice:bityInv(t, card), buyDate:p ? addMonths(t.data, -(p.atual - 1)) : t.data, groupId:p ? 'b-' + (t.vinculo || uid()) : null, inst:p ? p.atual : 1, instTotal:p ? p.total : 1});
+      continue;
+    }
+    const w = where(t);
+    if (w.pig || cat === 'ajuste' || cat === 'entre-bancos' || cat === 'fatura'){
+      add({type:'adjust', date:t.data, amount:t.tipo === 'receita' ? v : -v, desc:capWords(t.descricao) || 'Ajuste de saldo', accountId:w.acc || null, piggyId:w.pig || null});
+      continue;
+    }
+    const kind = t.tipo === 'receita' ? 'income' : 'expense';
+    add({type:kind, date:t.data, amount:v, desc:capWords(t.descricao).slice(0, 80) || TYPE_LABEL[kind], categoryId:catId(t.categoria, kind), accountId:w.acc});
+  }
+  st.tx = out;
+  st.source = {from:'bity', at:backup.criadoEm || new Date().toISOString()};
+  const skipped = [];
+  if ((c.metas || []).length) skipped.push(`${c.metas.length} meta(s)`);
+  if ((c.fixos || []).length) skipped.push(`${c.fixos.length} gasto(s) fixo(s)`);
+  return {st, warn, skipped, accounts:keys.length};
+}
+async function importBity(data){
+  let r;
+  try { r = bityToState(data); }
+  catch (e){ return toast(e.message === 'versao' ? 'Backup do bity em formato antigo. Atualize o bot e mande #backup de novo.' : 'Esse backup do bity não tem lançamentos.'); }
+  if (!(await ask(`Importar o backup do bity de ${fdate(String(data.criadoEm || '').slice(0, 10)) || 'data desconhecida'}? São ${r.st.tx.length} lançamentos. Os dados atuais do app serão trocados pelos do bot (o bot não muda).`, 'Importar', true))) return;
+  const keep = S.settings;
+  S = r.st; S.settings = Object.assign(S.settings, keep, {hide:keep.hide});
+  UI.bank = 'all'; UI.cardId = null; UI.invoice = null; UI.tab = 'resumo'; UI.month = monthOf(todayISO());
+  save(); render(); window.scrollTo(0, 0);
+  const notes = [];
+  if (r.warn.length) notes.push(`Confira em Cartões: ${r.warn.join('; ')}.`);
+  if (r.skipped.length) notes.push(`Ficaram só no bot: ${r.skipped.join(' e ')}.`);
+  if (r.accounts > 1) notes.push('O backup tinha mais de uma pessoa; importei só a sua conta.');
+  if (notes.length) openSheet('Importado do bity', `<p style="margin:0">${S.tx.length} lançamentos importados.</p>${notes.map(n => `<div class="hint">${esc(n)}</div>`).join('')}<button class="btn primary" data-act="close-sheet">Ver meus dados</button>`);
+  else toast(`${S.tx.length} lançamentos importados do bity`);
 }
 
 /* ============ Ações ============ */
