@@ -1534,7 +1534,9 @@ function bityToState(backup){
   if (fin.versao !== 3 || typeof fin.contas !== 'object') throw new Error('versao');
   const keys = Object.keys(fin.contas);
   if (!keys.length) throw new Error('vazio');
-  const key = fin.contas.eu ? 'eu' : keys.sort((a, b) => (fin.contas[b].transacoes || []).length - (fin.contas[a].transacoes || []).length)[0];
+  // a carteira com mais lançamentos (pode ser um grupo onde você lança as finanças, e não a conversa com você mesmo)
+  const qtd = k => (fin.contas[k].transacoes || []).length;
+  const key = keys.sort((a, b) => qtd(b) - qtd(a) || (b === 'eu') - (a === 'eu'))[0];
   const c = fin.contas[key];
   const st = defaultState();
   const cents = v => Math.round(Number(v || 0) * 100);
@@ -1638,7 +1640,7 @@ async function importBity(data){
   const notes = [];
   if (r.warn.length) notes.push(`Confira em Cartões: ${r.warn.join('; ')}.`);
   if (r.skipped.length) notes.push(`Ficaram só no bot: ${r.skipped.join(' e ')}.`);
-  if (r.accounts > 1) notes.push('O backup tinha mais de uma pessoa; importei só a sua conta.');
+  if (r.accounts > 1) notes.push(`O backup tinha ${r.accounts} carteiras (conversas e grupos). Importei a que tem mais lançamentos. Para escolher outra, use Conectar ao bity e mande !app ligar na conversa certa.`);
   if (notes.length) openSheet('Importado do bity', `<p style="margin:0">${S.tx.length} lançamentos importados.</p>${notes.map(n => `<div class="hint">${esc(n)}</div>`).join('')}<button class="btn primary" data-act="close-sheet">Ver meus dados</button>`);
   else toast(`${S.tx.length} lançamentos importados do bity`);
 }
