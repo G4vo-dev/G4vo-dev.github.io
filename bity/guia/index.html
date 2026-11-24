@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#064e3b">
+<link rel="icon" type="image/png" href="../icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Guia do bity</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700&display=swap">
+<style>
+/* Layout: guia de leitura em coluna; cada passo é texto + print do celular lado a lado (empilhado no celular) */
+:root{
+  --bg:#f3f7f5; --surface:#ffffff; --surface-2:#e8f1ec; --line:#d5e3dc;
+  --fg:#10211a; --muted:#56706a; --accent:#059669; --accent-2:#047857; --accent-soft:rgba(5,150,105,.10);
+  --warn:#b45309; --warn-soft:rgba(217,119,6,.11); --hero-a:#0e9a6b; --hero-b:#064e3b; --hero-fg:#ecfdf5;
+  --f-ui:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --f-head:"Sora","Manrope",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#09120f; --surface:#0f1b17; --surface-2:#162520; --line:#233830; --fg:#e8f3ee; --muted:#8ea79b;
+  --accent:#10b981; --accent-2:#34d399; --accent-soft:rgba(16,185,129,.15); --warn:#fbbf24; --warn-soft:rgba(251,191,36,.13); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#09120f; --surface:#0f1b17; --surface-2:#162520; --line:#233830; --fg:#e8f3ee; --muted:#8ea79b;
+  --accent:#10b981; --accent-2:#34d399; --accent-soft:rgba(16,185,129,.15); --warn:#fbbf24; --warn-soft:rgba(251,191,36,.13); color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:16px;line-height:1.6;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--f-head);line-height:1.2;text-wrap:balance;margin:0}
+h2{font-size:22px} h3{font-size:17px}
+p{margin:0} b{font-weight:700}
+.hero{margin-top:calc(-1 * env(safe-area-inset-top,0px));padding-top:calc(env(safe-area-inset-top,0px) + 28px);padding-bottom:26px;
+  margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+  background:radial-gradient(110% 130% at 100% 0%,rgba(255,255,255,.16),transparent 55%),linear-gradient(150deg,var(--hero-a),var(--hero-b));color:var(--hero-fg)}
+.hero-in{max-width:780px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+.mark{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-family:var(--f-head);font-size:22px}
+.hero h1{font-size:30px}
+.hero p{opacity:.92;max-width:58ch}
+.rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
+.rules div{background:rgba(255,255,255,.12);border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.4}
+.rules b{display:block;font-size:15px}
+@media (max-width:560px){.rules{grid-template-columns:1fr}}
+nav.toc{display:flex;gap:8px;flex-wrap:wrap}
+nav.toc a{color:var(--accent-2);background:var(--accent-soft);text-decoration:none;font-weight:700;font-size:14px;border-radius:999px;padding:6px 12px}
+section{display:flex;flex-direction:column;gap:16px;scroll-margin-top:16px}
+.part{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-2)}
+.step{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:18px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px}
+.step.noimg{grid-template-columns:1fr}
+.step .txt{display:flex;flex-direction:column;gap:10px;min-width:0}
+.step img{width:100%;max-width:230px;height:auto;border-radius:18px;border:1px solid var(--line);display:block;justify-self:center}
+@media (max-width:600px){.step{grid-template-columns:1fr}.step img{max-width:260px}}
+ol,ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.btn{display:inline-block;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:0 7px;font-weight:700;font-size:14px;white-space:nowrap}
+.tip{background:var(--accent-soft);border-radius:14px;padding:10px 12px;font-size:14.5px}
+.warn{background:var(--warn-soft);border-radius:14px;padding:12px 14px;font-size:15px}
+.warn b:first-child{color:var(--warn)}
+.big-link{display:block;text-align:center;background:var(--accent);color:#fff;text-decoration:none;font-weight:800;border-radius:14px;padding:12px 16px;font-size:16px}
+:root[data-theme="dark"] .big-link{color:#022c1e}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .big-link{color:#022c1e}}
+.copy{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.copy code{background:var(--surface-2);border-radius:8px;padding:4px 8px;font-size:14px;word-break:break-all;user-select:all}
+.copy button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:4px 10px;font:inherit;font-weight:700;cursor:pointer}
+details{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
+details+details{margin-top:-6px}
+summary{font-weight:700;cursor:pointer}
+details p{margin-top:8px;color:var(--fg)}
+.muted{color:var(--muted)}
+:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:6px}
+</style>
+
+<header class="hero"><div class="hero-in">
+  <div class="mark">b</div>
+  <h1>Guia do bity</h1>
+  <p>O bity é um app para controlar o seu dinheiro: bancos, cartões e faturas, compras parceladas, cofrinhos e para onde vai cada real do mês. Este guia leva uns 15 minutos para deixar tudo pronto.</p>
+  <div class="rules">
+    <div><b>É só seu</b>Os dados ficam só no seu celular. Ninguém mais vê, nem quem te passou o app.</div>
+    <div><b>Não precisa de conta</b>Sem login, sem senha, sem mensalidade.</div>
+    <div><b>Faça backup</b>Se apagar os dados do navegador ou trocar de celular, só o backup salva. Veja o passo 13.</div>
+  </div>
+</div></header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Partes do guia">
+    <a href="#instalar">1. Instalar</a><a href="#comecar">2. Começar</a><a href="#dia">3. Dia a dia</a><a href="#cartao">4. Cartões</a><a href="#cofre">5. Cofrinhos</a><a href="#ver">6. Acompanhar</a><a href="#backup">7. Backup</a><a href="#duvidas">Dúvidas</a>
+  </nav>
+
+  <section id="instalar">
+    <div class="part">Parte 1 · Instalar</div>
+    <div class="step noimg"><div class="txt">
+      <h3>1. Coloque o app na tela inicial</h3>
+      <p>No celular, abra este endereço <b>no Chrome</b>:</p>
+      <a class="big-link" href="https://g4vo-dev.github.io/bity/" target="_blank" rel="noopener">Abrir o bity</a>
+      <div class="copy"><code id="url">https://g4vo-dev.github.io/bity/</code><button type="button" id="copy-url">Copiar</button></div>
+      <ol>
+        <li>Toque nos três pontinhos <span class="btn">⋮</span> no canto de cima.</li>
+        <li>Toque em <span class="btn">Instalar app</span> (ou <span class="btn">Adicionar à tela inicial</span>).</li>
+        <li>Pronto: o ícone verde com um <b>b</b> aparece junto dos seus outros apps. Daqui pra frente, abra sempre por ele.</li>
+      </ol>
+      <p class="tip">Se te mandaram um arquivo <b>.apk</b>, dá para instalar por ele também. O Android vai pedir para liberar "instalar apps desconhecidos" só desta vez.</p>
+      <p class="tip">Use sempre o mesmo jeito de abrir (o ícone). O app aberto pelo navegador e o app instalado guardam os dados no mesmo lugar, mas outro navegador (Samsung Internet, Firefox) tem os dados separados.</p>
+    </div></div>
+  </section>
+
+  <section id="comecar">
+    <div class="part">Parte 2 · Começar do zero</div>
+    <div class="step"><div class="txt">
+      <h3>2. Apague os dados de exemplo</h3>
+      <p>Na primeira vez, o app abre com dados inventados para você ver como fica tudo preenchido. Explore à vontade e depois:</p>
+      <ol>
+        <li>Toque em <span class="btn">Começar do zero</span> na faixa verde lá em cima, <b>ou</b> vá em <span class="btn">Dados</span> e desça até <span class="btn">Limpar dados</span>.</li>
+        <li>Confirme. O app fica vazio, só seu.</li>
+      </ol>
+    </div><img src="img/01-resumo.jpg" alt="Tela Resumo com saldo consolidado, entradas e saídas do mês" loading="lazy"></div>
+
+    <div class="step"><div class="txt">
+      <h3>3. Cadastre seus bancos</h3>
+      <ol>
+        <li>Vá em <span class="btn">Dados</span> → <span class="btn">+ Banco</span>.</li>
+        <li><b>Nome:</b> como você chama a conta (Nubank, Caixa, Itaú Poupança…).</li>
+        <li><b>Saldo inicial:</b> quanto tem na conta <b>hoje</b>. Abra o app do banco e copie o valor.</li>
+        <li>Repita para cada conta que você usa, inclusive "Carteira" para dinheiro vivo, se quiser.</li>
+      </ol>
+      <p class="tip">Não precisa lançar o passado. Comece de hoje com o saldo de hoje.</p>
+    </div><img src="img/04-banco.jpg" alt="Formulário de novo banco com nome Nubank e saldo inicial" loading="lazy"></div>
+
+    <div class="step"><div class="txt">
+      <h3>4. Cadastre seus cartões de crédito</h3>
+      <ol>
+        <li>Vá em <span class="btn">Cartões</span> → <span class="btn">Novo cartão</span>.</li>
+        <li>Coloque o <b>limite</b>, o <b>dia que a fatura fecha</b> e o <b>dia que vence</b>. Esses dias estão no app do banco, na tela da fatura.</li>
+        <li>Em "Paga a fatura com", escolha o banco de onde sai o pagamento.</li>
+      </ol>
+      <p class="tip">Com o dia de fechamento certo, o app coloca cada compra na fatura certa, igual ao app do banco.</p>
+    </div><img src="img/08-cartao-form.jpg" alt="Formulário do cartão com limite, dia de fechamento e vencimento" loading="lazy"></div>
+  </section>
+
+  <section id="dia">
+    <div class="part">Parte 3 · Dia a dia</div>
+    <div class="step"><div class="txt">
+      <h3>5. Lance um gasto ou uma receita</h3>
+      <ol>
+        <li>Toque no botão verde <span class="btn">+</span> (sempre no canto de baixo).</li>
+        <li>Escolha <span class="btn">Gasto</span> ou <span class="btn">Receita</span>.</li>
+        <li>Preencha o valor, uma descrição curta, a categoria e o banco. Toque em <span class="btn">Salvar</span>.</li>
+      </ol>
+      <p class="tip">Conta que ainda vai vencer? Coloque a data do vencimento. Ela aparece como <b>Agendado</b> e só mexe no saldo quando o dia chegar.</p>
+    </div><img src="img/03-gasto.jpg" alt="Formulário de novo gasto com valor 32,90 e descrição Padaria" loading="lazy"></div>
+
+    <div class="step"><div class="txt">
+      <h3>6. Passou dinheiro de um banco seu para outro?</h3>
+      <p>Use <span class="btn">+</span> → <span class="btn">Transferência</span>, escolha "de" e "para". Vira uma linha só e <b>não</b> conta como gasto nem como receita.</p>
+      <p class="tip">Não lance como gasto num banco e receita no outro: o resumo do mês ficaria errado.</p>
+    </div><img src="img/11-transferencia.jpg" alt="Formulário de transferência entre dois bancos" loading="lazy"></div>
+
+    <div class="step"><div class="txt">
+      <h3>7. Ache, corrija ou apague qualquer lançamento</h3>
+      <ol>
+        <li>Vá em <span class="btn">Extrato</span>. Os botões de cima filtram por banco e por tipo; a busca procura em todos os meses.</li>
+        <li><b>Toque no lançamento</b> para editar ou excluir.</li>
+      </ol>
+      <p class="tip">As setas ‹ › trocam o mês.</p>
+    </div><img src="img/12-extrato.jpg" alt="Extrato do mês com filtros por banco e por tipo" loading="lazy"></div>
+
+    <div class="step"><div class="txt">
+      <h3>8. O saldo não bateu com o do banco?</h3>
+      <p>Acontece: uma tarifa, um rendimento, algo que você esqueceu. No <span class="btn">Extrato</span>, toque no banco e depois em <span class="btn">Ajustar saldo</span>. Digite o saldo que aparece no app do banco e o bity calcula a diferença sozinho.</p>
+    </div><img src="img/13-ajuste.jpg" alt="Ajuste de saldo mostrando saldo calculado e a diferença" loading="lazy"></div>
+  </section>
+
+  <section id="cartao">
+    <div class="part">Parte 4 · Cartões e faturas</div>
+    <div class="step"><div class="txt">
+      <h3>9. Compra no cartão (à vista ou parcelada)</h3>
+      <ol>
+        <li><span class="btn">+</span> → <span class="btn">Cartão</span>.</li>
+        <li>Coloque o <b>valor total</b> da compra e escolha as <b>parcelas</b>.</li>
+        <li>O app mostra quanto fica cada parcela e em quais faturas elas caem, e já distribui tudo sozinho.</li>
+      </ol>
+    </div><img src="img/07-parcelado.jpg" alt="Compra de 1.200 reais em 6 parcelas de 200 reais" loading="lazy"></div>
+
+    <div class="step"><div class="txt">
+      <h3>10. Veja e pague a fatura</h3>
+      <ol>
+        <li>Em <span class="btn">Cartões</span>, os meses de cima são as faturas. A que diz <b>atual</b> é a aberta.</li>
+        <li>Você vê quando fecha, quando vence, o total e cada compra.</li>
+        <li>Pagou? Toque em <span class="btn">Pagar fatura</span> e escolha o banco. O limite volta na hora.</li>
+      </ol>
+      <p class="tip">A barra de limite mostra em vermelho o que está usado (somando as parcelas futuras) e em verde o que sobra.</p>
+    </div><img src="img/06-fatura.jpg" alt="Fatura de dezembro com total, datas e lista de compras" loading="lazy"></div>
+  </section>
+
+  <section id="cofre">
+    <div class="part">Parte 5 · Cofrinhos</div>
+    <div class="step"><div class="txt">
+      <h3>11. Guarde dinheiro para uma meta</h3>
+      <ol>
+        <li>Vá em <span class="btn">Cofrinhos</span> → <span class="btn">+ Cofrinho</span>. Dê um nome (Viagem, Reserva…) e, se quiser, uma meta.</li>
+        <li>Para guardar: <span class="btn">Guardar</span>. Para tirar: <span class="btn">Resgatar</span>.</li>
+        <li><span class="btn">Rendeu</span> serve para lançar o rendimento do cofrinho.</li>
+      </ol>
+      <p class="tip">Seu banco tem cofrinho que <b>vira limite do cartão</b> (como Mercado Pago ou PicPay)? Escolha esse tipo e o cartão: o que você guardar soma no limite disponível dele.</p>
+    </div><img src="img/09-cofrinhos.jpg" alt="Tela de cofrinhos com metas e barras de progresso" loading="lazy"></div>
+  </section>
+
+  <section id="ver">
+    <div class="part">Parte 6 · Acompanhar</div>
+    <div class="step"><div class="txt">
+      <h3>12. Resumo, limites e plano</h3>
+      <ul>
+        <li><b>Resumo:</b> quanto entrou, saiu e sobrou no mês; gastos por categoria (toque no gráfico); seus bancos, cofrinhos e cartões separados.</li>
+        <li><b>Limites:</b> em <span class="btn">Dados</span> → <span class="btn">Categorias e limites</span>, toque numa categoria e coloque um teto por mês. O app avisa quando passar de 80%.</li>
+        <li><b>Plano:</b> simula em quanto tempo o seu dinheiro guardado passa a pagar o seu custo de vida.</li>
+      </ul>
+      <p class="tip">O <b>olho</b> lá em cima esconde todos os valores, para abrir o app perto de outras pessoas. O <b>sol/lua</b> troca o tema.</p>
+    </div><img src="img/02-limites.jpg" alt="Limites do mês por categoria com barras coloridas" loading="lazy"></div>
+  </section>
+
+  <section id="backup">
+    <div class="part">Parte 7 · Backup (não pule)</div>
+    <div class="warn"><b>Por que importa:</b> o app guarda tudo dentro do navegador do celular. Limpar os dados do Chrome ou trocar de celular <b>apaga tudo</b>, e desinstalar o app pode apagar também. O backup é a única cópia.</div>
+    <div class="step"><div class="txt">
+      <h3>13. Faça backup uma vez por semana</h3>
+      <ol>
+        <li>Vá em <span class="btn">Dados</span> → <span class="btn">Exportar backup (JSON)</span>.</li>
+        <li>Guarde o arquivo num lugar fora do celular: mande para você mesma no WhatsApp ou salve no Google Drive.</li>
+        <li>O app mostra a data do último backup, para você lembrar.</li>
+      </ol>
+      <p><b>Para recuperar</b> (celular novo, por exemplo): instale o app de novo e vá em <span class="btn">Dados</span> → <span class="btn">Restaurar backup</span> e escolha o arquivo.</p>
+      <p class="tip"><span class="btn">Exportar lançamentos (CSV)</span> gera uma planilha que abre no Excel ou no Google Planilhas.</p>
+    </div><img src="img/15-backup.jpg" alt="Seção de backup com os botões Exportar backup e Restaurar backup" loading="lazy"></div>
+  </section>
+
+  <section id="duvidas">
+    <div class="part">Dúvidas rápidas</div>
+    <details><summary>O que é "Importar do bity" e "Conectar ao bity"?</summary><p>É para quem usa o robô do bity no WhatsApp. Se você não usa, pode ignorar essas duas partes.</p></details>
+    <details><summary>Lancei uma compra do cartão como gasto da conta. E agora?</summary><p>No Extrato, toque no lançamento, troque o tipo lá em cima para <b>Cartão</b>, escolha o cartão e salve.</p></details>
+    <details><summary>Comprei parcelado e errei o número de parcelas.</summary><p>Toque em qualquer parcela no Extrato ou na fatura, corrija as parcelas e salve. O app refaz todas.</p></details>
+    <details><summary>O que é "Ler comprovante"?</summary><p>Manda um print de Pix ou cupom e o app preenche o lançamento. Precisa de uma chave gratuita do Google Gemini colada em Dados. É opcional: tudo funciona sem isso.</p></details>
+    <details><summary>Os valores sumiram e aparece "R$ ••••".</summary><p>Você tocou no olho lá em cima. Toque de novo para mostrar.</p></details>
+    <details><summary>Abri e está tudo vazio!</summary><p>Você provavelmente abriu por outro navegador ou outro caminho. Abra pelo ícone do app. Se os dados foram apagados, use Restaurar backup com o último arquivo.</p></details>
+  </section>
+
+  <p class="muted" style="font-size:13.5px;text-align:center">Guia do bity · versão do app de novembro de 2026</p>
+</div>
+
+<script>
+document.getElementById('copy-url').addEventListener('click', function(){
+  var t = document.getElementById('url').textContent, b = this;
+  function ok(){ b.textContent = 'Copiado'; setTimeout(function(){ b.textContent = 'Copiar'; }, 1800); }
+  function fall(){ var r = document.createRange(); r.selectNodeContents(document.getElementById('url')); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Selecionado'; }
+  try { navigator.clipboard.writeText(t).then(ok, fall); } catch (e){ fall(); }
+});
+</script>
+
+</body>
+</html>
