@@ -1,5 +1,5 @@
 // Guarda o app no celular para abrir sem internet. Os seus dados ficam no navegador, não aqui.
-const CACHE = 'bity-20261124183257';
+const CACHE = 'bity-20261124185326';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
