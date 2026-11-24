@@ -74,6 +74,9 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .brand{display:flex;align-items:center;gap:9px;font-family:var(--f-num);font-weight:700;font-size:20px;letter-spacing:-.02em}
 .brand-mark{width:30px;height:30px;border-radius:10px;background:linear-gradient(140deg,var(--hero-a),var(--hero-b));display:grid;place-items:center;color:var(--hero-fg);font-size:15px}
 .top .sp{flex:1}
+.link-chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 10px 4px 8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.link-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.link-chip.on::before{background:var(--accent-2)} .link-chip.bad{color:var(--neg)} .link-chip.bad::before{background:var(--neg)}
 .icon-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--fg)}
 .icon-btn:hover{background:var(--surface-2)}
 
@@ -293,6 +296,7 @@ textarea.copy{min-height:180px;font-family:ui-monospace,Menlo,monospace;font-siz
 
 <header class="top">
   <div class="brand"><span class="brand-mark">b</span>bity</div>
+  <button class="link-chip" id="link-chip" data-act="tab" data-tab="dados" data-scroll="link" hidden></button>
   <div class="sp"></div>
   <button class="icon-btn" data-act="toggle-hide" id="btn-hide" aria-label="Ocultar valores"></button>
   <button class="icon-btn" data-act="toggle-theme" id="btn-theme" aria-label="Alternar tema"></button>
@@ -626,6 +630,7 @@ function render(){
   $('#btn-hide').setAttribute('aria-label', UI.hide ? 'Mostrar valores' : 'Ocultar valores');
   $('#tabs').innerHTML = TABS.map(([id, l, ic]) => `<button data-act="tab" data-tab="${id}" ${UI.tab === id ? 'aria-current="page"' : ''}>${I(ic)}<span>${l}</span></button>`).join('');
   $('.fab').innerHTML = I('plus');
+  renderChip();
   const v = {resumo:vResumo, extrato:vExtrato, cartoes:vCartoes, cofrinhos:vCofrinhos, plano:vPlano, dados:vDados}[UI.tab]();
   $('#view').innerHTML = (S.isSample ? sampleBanner() : '') + (!STORAGE_OK ? `<div class="alert bad">${I('alert')}<div class="grow">Este navegador não deixou salvar os dados. Eles somem ao fechar a página. Use <b>Dados → Exportar backup</b> antes de sair.</div></div>` : '') + v;
   if (UI.tab === 'extrato') renderExtList();
@@ -1004,6 +1009,15 @@ function vDados(){
     <div class="set-row"><div class="mid">Tema</div><div class="seg" style="flex:0 1 260px">${[['dark','Escuro'],['light','Claro'],['system','Sistema']].map(([v, l]) => `<button data-act="set-theme" data-v="${v}" aria-pressed="${th === v}">${l}</button>`).join('')}</div></div>
     <div class="set-row"><div class="mid">Ocultar valores<div class="s">Troca os valores por •••• na tela.</div></div><button class="switch" role="switch" aria-checked="${!!S.settings.hide}" data-act="toggle-hide" aria-label="Ocultar valores"></button></div>
   </div></section>
+  <section class="blk" id="link"><div class="blk-h"><h2>Conectar ao bity</h2>${linked() ? `<span class="tag ${LINK.status === 'ok' ? 'ok' : LINK.status === 'erro' ? 'bad' : ''}">${LINK.status === 'ok' ? 'Conectado' : LINK.status === 'erro' ? 'Sem resposta' : 'Conectando'}</span>` : ''}</div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">${linked()
+      ? `<div class="muted" style="font-size:13.5px">O app mostra os dados do bity e manda para ele cada lançamento que você fizer aqui. Bancos, cartões, cofrinhos e limites você cadastra pelo WhatsApp.${LINK.at ? ` Última atualização às <b>${LINK.at.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</b>.` : ''}</div>
+        ${LINK.status === 'erro' ? `<div class="alert bad">${I('alert')}<div class="grow">${esc(LINK.msg)}</div></div>` : ''}
+        <div class="btn-row"><button class="btn primary" data-act="link-sync">Atualizar agora</button><button class="btn ghost" data-act="link-off">Desconectar</button></div>`
+      : `<div class="muted" style="font-size:13.5px">Use o mesmo celular onde o bity roda. No WhatsApp, mande <b>#app ligar</b> na conversa com você mesmo e copie a porta e o código.</div>
+        <div class="grid2">${fld('Porta', `<input id="lk-port" inputmode="numeric" value="47621" autocomplete="off">`)}${fld('Código', `<input id="lk-code" type="password" autocomplete="off" placeholder="Cole o código">`)}</div>
+        <button class="btn primary" data-act="link-connect">Conectar</button>`}
+    </div></section>
   <section class="blk"><div class="blk-h"><h2>Bancos e contas</h2><button class="lnk" data-act="new-acc">+ Banco</button></div>
     <div class="panel flush rows">${S.accounts.length ? S.accounts.map(a => `<button class="row-i" data-act="edit-acc" data-id="${a.id}"><i class="dot" style="background:${a.color}"></i><span class="mid"><span class="t">${esc(a.name)}</span><span class="s">Titular: ${esc(holderName(a.holderId))} · saldo inicial ${money(a.initial)}</span></span><span class="end muted">${I('edit')}</span></button>`).join('') : '<div class="empty"><span>Nenhum banco cadastrado.</span></div>'}</div></section>
   <section class="blk"><div class="blk-h"><h2>Cofrinhos</h2><button class="lnk" data-act="new-piggy">+ Cofrinho</button></div>
@@ -1100,6 +1114,12 @@ function openTxForm(t, preset = {}){
         e.preventDefault(); collect();
         const out = buildTx(d, orig);
         if (typeof out === 'string') return showErr(out);
+        if (linked()){
+          const btn = $('#txf button[type=submit]', root); btn.disabled = true; btn.textContent = 'Mandando para o bity…';
+          linkSave(out, orig).then(() => { closeSheet(); render(); toast(orig ? 'Atualizado no bity' : 'Salvo no bity'); })
+            .catch(err => { btn.disabled = false; btn.textContent = orig ? 'Salvar alterações' : 'Salvar'; showErr(err.message); });
+          return;
+        }
         if (orig) removeTx(orig);
         S.tx.push(...out);
         if (S.isSample) S.isSample = false;
@@ -1108,7 +1128,9 @@ function openTxForm(t, preset = {}){
       const del = $('#txf-del', root);
       if (del) del.addEventListener('click', async () => {
         const many = orig.groupId ? groupRows(orig.groupId).length : 1;
-        if (!(await ask(many > 1 ? `Excluir a compra inteira (${many} parcelas)?` : 'Excluir este lançamento?', 'Excluir', true))) return;
+        const pair = linked() && ['transfer', 'piggy_in', 'piggy_out', 'card_payment'].includes(orig.type);
+        if (!(await ask(many > 1 ? `Excluir a compra inteira (${many} parcelas)?` : pair ? 'Excluir este lançamento? No bity, as duas pontas saem juntas.' : 'Excluir este lançamento?', 'Excluir', true))) return;
+        if (linked()){ try { await linkDelete(orig); closeSheet(); render(); toast('Excluído no bity'); } catch (err){ showErr(err.message); } return; }
         removeTx(orig); commit('Lançamento excluído');
       });
     });
@@ -1282,6 +1304,7 @@ function formSheet(title, html, onSave, onDelete){
 }
 const holderSelect = sel => `<select id="f-holder">${S.holders.map(h => opt(h.id, h.name, h.id === sel)).join('')}</select>`;
 function accForm(a){
+  if (linkBlock()) return;
   const o = a ? Object.assign({}, a) : {color:PALETTE[S.accounts.length % PALETTE.length], holderId:S.holders[0]?.id, initial:0};
   const root = formSheet(a ? 'Editar banco' : 'Novo banco',
     fld('Nome do banco ou conta', `<input id="f-name" maxlength="50" placeholder="Ex.: Caixa Econômica Federal" value="${esc(o.name)}">`)
@@ -1307,6 +1330,7 @@ function accForm(a){
   bindSwatches(root, o);
 }
 function holderForm(h){
+  if (linkBlock()) return;
   formSheet(h ? 'Editar titular' : 'Novo titular', fld('Nome do titular', `<input id="f-name" maxlength="40" placeholder="Ex.: Maria" value="${esc(h && h.name)}">`),
     r => { const name = $('#f-name', r).value.trim(); if (!name) return 'Informe um nome.'; if (h) h.name = name; else S.holders.push({id:uid(), name}); commit('Titular salvo'); },
     h && S.holders.length > 1 ? async () => {
@@ -1316,6 +1340,7 @@ function holderForm(h){
     } : null);
 }
 function catForm(c){
+  if (linkBlock()) return;
   const o = c ? Object.assign({}, c) : {kind:'expense', color:PALETTE[S.categories.length % PALETTE.length], budget:0};
   const root = formSheet(c ? 'Editar categoria' : 'Nova categoria',
     fld('Nome', `<input id="f-name" maxlength="40" value="${esc(o.name)}" placeholder="Ex.: Pets">`)
@@ -1337,6 +1362,7 @@ function catForm(c){
   bindSwatches(root, o);
 }
 function cardForm(k){
+  if (linkBlock()) return;
   const o = k ? Object.assign({}, k) : {color:PALETTE[(S.cards.length + 4) % PALETTE.length], holderId:S.holders[0]?.id, closingDay:1, dueDay:8, limit:0, payAccountId:S.accounts[0]?.id};
   const dayOpts = sel => Array.from({length:31}, (_, i) => opt(i + 1, 'Dia ' + (i + 1), sel === i + 1)).join('');
   const root = formSheet(k ? 'Editar cartão' : 'Novo cartão',
@@ -1363,6 +1389,7 @@ function cardForm(k){
   bindSwatches(root, o);
 }
 function piggyForm(p){
+  if (linkBlock()) return;
   const o = p ? Object.assign({}, p) : {kind:'common', color:PALETTE[S.piggies.length % PALETTE.length], accountId:S.accounts[0]?.id, goal:0};
   const root = formSheet(p ? 'Editar cofrinho' : 'Novo cofrinho',
     fld('Nome', `<input id="f-name" maxlength="40" placeholder="Ex.: Reserva de emergência" value="${esc(o.name)}">`)
@@ -1415,7 +1442,7 @@ function showCopy(name, text){
 }
 function exportJSON(){
   const data = JSON.parse(JSON.stringify(S));
-  data.settings.aiKey = '';
+  data.settings.aiKey = ''; delete data.settings.link;
   data.exportedAt = new Date().toISOString();
   const today = todayISO();
   saveFile(`bity-backup-${today}.json`, JSON.stringify(data, null, 1)).then(ok => { if (ok){ S.lastBackup = today; save(); if (UI.tab === 'dados') render(); } });
@@ -1512,27 +1539,29 @@ function bityToState(backup){
   const st = defaultState();
   const cents = v => Math.round(Number(v || 0) * 100);
   st.holders = [{id:'h-eu', name:String(c.titular || 'Eu').slice(0, 40)}];
-  const accBy = {}, pigBy = {}, cardBy = {}, warn = [];
+  const accBy = {}, pigBy = {}, cardBy = {}, warn = [], ids = new Set();
+  // ids fixos a partir do nome no bity: a tela não perde o cartão ou banco escolhido a cada sincronização
+  const sid = (pre, nome) => { let b = pre + (norm(nome).replace(/[^a-z0-9]+/g, '-') || 'x'), id = b, i = 2; while (ids.has(id)) id = b + '-' + i++; ids.add(id); return id; };
   const mkAcc = nome => {
     const n = norm(nome);
-    if (!accBy[n]){ const a = {id:uid(), name:capWords(nome), holderId:'h-eu', initial:0, color:PALETTE[st.accounts.length % PALETTE.length]}; st.accounts.push(a); accBy[n] = a.id; }
+    if (!accBy[n]){ const a = {id:sid('ba-', n), name:capWords(nome), holderId:'h-eu', initial:0, color:PALETTE[st.accounts.length % PALETTE.length], bityName:n === 'conta principal' ? null : n}; st.accounts.push(a); accBy[n] = a.id; }
     return accBy[n];
   };
   const mkCard = nome => {
     const n = norm(nome || 'cartão');
-    if (!cardBy[n]){ const k = {id:uid(), name:capWords(n), holderId:'h-eu', limit:0, closingDay:1, dueDay:10, color:PALETTE[(st.cards.length + 4) % PALETTE.length], payAccountId:null, noDates:true}; st.cards.push(k); cardBy[n] = k; warn.push(`cartão ${k.name} sem limite e sem datas`); }
+    if (!cardBy[n]){ const k = {id:sid('bk-', n), name:capWords(n), holderId:'h-eu', limit:0, closingDay:1, dueDay:10, color:PALETTE[(st.cards.length + 4) % PALETTE.length], payAccountId:null, noDates:true, bityName:null}; st.cards.push(k); cardBy[n] = k; warn.push(`cartão ${k.name} sem limite e sem datas`); }
     return cardBy[n];
   };
   const real = (c.bancos || []).filter(b => b.tipo !== 'cofrinho');
   real.forEach(b => mkAcc(b.nome));
   for (const k of c.cartoes || []){
-    const card = {id:uid(), name:capWords(k.nome), holderId:'h-eu', limit:cents(k.limite), closingDay:k.fechamento || 1, dueDay:k.vencimento || 10, color:PALETTE[(st.cards.length + 4) % PALETTE.length], payAccountId:null};
+    const card = {id:sid('bk-', k.nome), name:capWords(k.nome), holderId:'h-eu', limit:cents(k.limite), closingDay:k.fechamento || 1, dueDay:k.vencimento || 10, color:PALETTE[(st.cards.length + 4) % PALETTE.length], payAccountId:null, bityName:norm(k.nome)};
     if (!k.fechamento){ card.noDates = true; warn.push(`cartão ${card.name} sem dia de fechamento`); }
     st.cards.push(card); cardBy[norm(k.nome)] = card;
   }
   for (const b of (c.bancos || []).filter(b => b.tipo === 'cofrinho')){
     const card = !b.apelido && b.cartao ? mkCard(b.cartao) : null;
-    const p = {id:uid(), name:b.apelido ? capWords(b.apelido) : 'Cofrinho ' + capWords(String(b.nome).replace(/^cofrinho-?/, '')),
+    const p = {id:sid('bp-', b.nome), bityName:norm(b.nome), name:b.apelido ? capWords(b.apelido) : 'Cofrinho ' + capWords(String(b.nome).replace(/^cofrinho-?/, '')),
       kind:card ? 'limit' : 'common', cardId:card ? card.id : null, accountId:b.banco ? mkAcc(b.banco) : null, goal:0, color:PALETTE[(st.piggies.length + 2) % PALETTE.length]};
     st.piggies.push(p); pigBy[norm(b.nome)] = p.id;
   }
@@ -1543,7 +1572,8 @@ function bityToState(backup){
     let n = norm(nome || 'outros'); if (n === 'comida') n = 'alimentacao';
     if (n === 'outros') return st.categories.find(x => x.kind === kind && norm(x.name).startsWith('outr')).id;
     let cat = st.categories.find(x => x.kind === kind && norm(x.name) === n);
-    if (!cat){ cat = {id:uid(), name:capWords(nome), kind, budget:0, color:PALETTE[st.categories.length % PALETTE.length]}; st.categories.push(cat); }
+    if (!cat){ cat = {id:sid('bc-', kind + '-' + n), name:capWords(nome), kind, budget:0, color:PALETTE[st.categories.length % PALETTE.length]}; st.categories.push(cat); }
+    cat.bityName = cat.bityName || norm(nome);
     return cat.id;
   };
   for (const l of c.limites || []) byId(st.categories, catId(l.categoria, 'expense')).budget = cents(l.valor);
@@ -1551,10 +1581,11 @@ function bityToState(backup){
   const groups = {};
   for (const t of c.transacoes || []) if (t.vinculo && !t.parcela) (groups[t.vinculo] = groups[t.vinculo] || []).push(t);
   const used = new Set(), out = [];
-  const add = o => out.push(Object.assign({id:uid()}, o));
+  let cur = null;
+  const add = o => out.push(Object.assign({id:sid('bt-', cur.id || uid()), bityId:cur.id || null}, o));
   for (const t of c.transacoes || []){
     if (used.has(t) || !(Number(t.valor) > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(t.data || '')) continue;
-    used.add(t);
+    used.add(t); cur = t;
     const cat = norm(t.categoria), v = cents(t.valor);
     const other = t.vinculo && !t.parcela ? (groups[t.vinculo] || []).find(x => !used.has(x) && x.tipo !== t.tipo) : null;
     if (other && cat === 'entre-bancos' && norm(other.categoria) === 'entre-bancos' && t.metodo !== 'credito' && other.metodo !== 'credito'){
@@ -1612,6 +1643,98 @@ async function importBity(data){
   else toast(`${S.tx.length} lançamentos importados do bity`);
 }
 
+/* ============ Conexão com o bity no mesmo celular ============ */
+// Com a conexão ligada, o bity é o único lugar dos dados: o app lê do bot e manda cada lançamento para ele.
+const LINK = {status:'off', msg:'', at:null, busy:false};
+const linked = () => !!(S.settings.link && S.settings.link.code);
+async function linkFetch(path, opts = {}){
+  const l = S.settings.link;
+  let r;
+  try {
+    r = await fetch(`http://127.0.0.1:${l.port}${path}`, {...opts, headers:{'Authorization':'Bearer ' + l.code, 'Content-Type':'application/json'}, cache:'no-store'});
+  } catch (e){
+    throw new Error(IN_VIEWER ? 'Dentro do Claude o app não alcança o bity. Use g4vo-dev.github.io/bity ou o APK no celular do bot.' : 'O bity não respondeu. Confira se o bot está ligado neste celular e se você mandou #app ligar.');
+  }
+  let j = {}; try { j = await r.json(); } catch (e){}
+  if (!r.ok) throw new Error(r.status === 401 ? 'Código errado. Mande #app no WhatsApp e cole o código de novo.' : (j.erro ? 'bity: ' + j.erro : 'O bity respondeu com erro ' + r.status + '.'));
+  return j;
+}
+async function linkSync(silent){
+  if (!linked() || LINK.busy) return false;
+  LINK.busy = true;
+  try {
+    const data = await linkFetch('/v1/backup');
+    const r = bityToState(data);
+    const keep = S.settings;
+    S = r.st; S.settings = keep;
+    LINK.status = 'ok'; LINK.msg = ''; LINK.at = new Date();
+    save(); if ($('#sheet').hidden) render(); else renderChip();
+    if (!silent) toast('Atualizado com o bity');
+    return true;
+  } catch (e){
+    LINK.status = 'erro'; LINK.msg = e.message; renderChip();
+    if (!silent) toast(e.message);
+    else if (UI.tab === 'dados' && $('#sheet').hidden) render();
+    return false;
+  } finally { LINK.busy = false; }
+}
+function renderChip(){
+  const el = $('#link-chip'); if (!el) return;
+  if (!linked()){ el.hidden = true; return; }
+  el.hidden = false;
+  el.className = 'link-chip ' + (LINK.status === 'ok' ? 'on' : LINK.status === 'erro' ? 'bad' : '');
+  el.textContent = LINK.status === 'ok' ? 'bity' : LINK.status === 'erro' ? 'bity offline' : 'bity…';
+  el.title = LINK.status === 'erro' ? LINK.msg : LINK.at ? 'Atualizado às ' + LINK.at.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '';
+}
+const reais = c => Math.round(c) / 100;
+function bityNameOf(kind, id){
+  const x = kind === 'acc' ? byId(S.accounts, id) : kind === 'pig' ? byId(S.piggies, id) : byId(S.cards, id);
+  if (!x) throw new Error('Escolha um banco, cofrinho ou cartão.');
+  if (!x.bityName){
+    if (kind === 'acc' && x.id.startsWith('ba-conta-principal')) return null;
+    throw new Error(`${x.name} não existe no bity. Cadastre pelo WhatsApp e atualize.`);
+  }
+  return x.bityName;
+}
+function catBity(id){
+  const c = catOf(id); if (!c) return 'outros';
+  return c.bityName || (norm(c.name).startsWith('outr') ? 'outros' : norm(c.name));
+}
+// Converte as linhas montadas pelo formulário no pedido que o bity entende.
+function rowsToOp(rows){
+  const t = rows[0], base = {data:t.date, descricao:t.desc || ''};
+  switch (t.type){
+    case 'income': case 'expense': return {...base, op:t.type === 'income' ? 'receita' : 'despesa', valor:reais(t.amount), banco:bityNameOf('acc', t.accountId), categoria:catBity(t.categoryId)};
+    case 'card': return {...base, op:'credito', data:t.buyDate || t.date, valor:reais(sum(rows, r => r.amount)), parcelas:rows.length, cartao:bityNameOf('card', t.cardId), categoria:catBity(t.categoryId)};
+    case 'transfer': return {...base, op:'transferencia', valor:reais(t.amount), de:bityNameOf('acc', t.accountId), para:bityNameOf('acc', t.toAccountId)};
+    case 'piggy_in': return {...base, op:'transferencia', valor:reais(t.amount), de:bityNameOf('acc', t.accountId), para:bityNameOf('pig', t.piggyId)};
+    case 'piggy_out': return {...base, op:'transferencia', valor:reais(t.amount), de:bityNameOf('pig', t.piggyId), para:bityNameOf('acc', t.accountId)};
+    case 'adjust': return {...base, op:'ajuste', diferenca:reais(t.amount), banco:t.piggyId ? bityNameOf('pig', t.piggyId) : bityNameOf('acc', t.accountId)};
+    case 'card_payment': return {...base, op:'fatura', valor:reais(t.amount), cartao:bityNameOf('card', t.cardId), banco:t.accountId ? bityNameOf('acc', t.accountId) : null};
+  }
+  throw new Error('Tipo de lançamento não suportado.');
+}
+async function linkSave(rows, orig){
+  const op = rowsToOp(rows);
+  await linkFetch('/v1/lancamentos', {method:'POST', body:JSON.stringify(op)});
+  if (orig && orig.bityId){
+    try { await linkFetch('/v1/lancamentos/' + encodeURIComponent(orig.bityId), {method:'DELETE'}); }
+    catch (e){ await linkSync(true); throw new Error('O novo lançamento foi salvo no bity, mas o antigo não saiu. Apague o antigo pelo extrato.'); }
+  }
+  await linkSync(true);
+}
+async function linkDelete(t){
+  if (!t.bityId) throw new Error('Esse lançamento não veio do bity.');
+  await linkFetch('/v1/lancamentos/' + encodeURIComponent(t.bityId), {method:'DELETE'});
+  await linkSync(true);
+}
+function linkBlock(){
+  if (!linked()) return false;
+  toast('Conectado ao bity: cadastre bancos, cartões, cofrinhos e limites pelo WhatsApp.');
+  return true;
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && linked() && (!LINK.at || Date.now() - LINK.at > 30000)) linkSync(true); });
+
 /* ============ Ações ============ */
 const ACT = {
   'tab': d => { UI.tab = d.tab; render(); if (d.scroll){ const el = document.getElementById(d.scroll); if (el) el.scrollIntoView({block:'start'}); } else window.scrollTo(0, 0); },
@@ -1642,20 +1765,35 @@ const ACT = {
   'plan-fill-pat': () => { S.plan.patrimonio = Math.max(0, totalAccounts() + totalPiggies()); save(); render(); },
   'plan-fill-gas': () => { const cur = monthOf(todayISO()); const ms = [1, 2, 3].map(i => monthStats(shiftMonth(cur, -i)).exp); const avg = Math.round(sum(ms) / 3); if (!avg) return toast('Ainda não há gastos nos últimos 3 meses.'); S.plan.gasto = avg; save(); render(); toast('Média dos últimos 3 meses: ' + fmt(avg)); },
   'export-json': () => exportJSON(), 'export-csv': () => exportCSV(),
-  'import-json': () => $('#file-json').click(), 'import-csv': () => $('#file-csv').click(),
+  'import-json': () => $('#file-json').click(), 'import-csv': () => { if (!linkBlock()) $('#file-csv').click(); },
   'save-ai': () => { S.settings.aiKey = $('#ai-key').value.trim(); S.settings.aiModel = $('#ai-model').value.trim() || 'gemini-2.5-flash'; save(); render(); toast(S.settings.aiKey ? 'Chave salva neste navegador' : 'Chave removida'); },
   'del-ai': () => { S.settings.aiKey = ''; save(); render(); toast('Chave apagada'); },
   'load-sample': async () => {
+    if (linkBlock()) return;
     if (S.tx.length && !S.isSample && !(await ask('Carregar os dados de exemplo? Isso substitui seus dados atuais. Faça um backup antes, se quiser guardar.', 'Carregar exemplo', true))) return;
     const keep = S.settings; sampleState(); S.settings = Object.assign(S.settings, keep, {hide:false});
     UI.month = monthOf(todayISO()); UI.bank = 'all'; UI.cardId = null; UI.invoice = null; UI.tab = 'resumo';
     closeSheet(); save(); render(); window.scrollTo(0, 0); toast('Dados de exemplo carregados');
   },
   'clear-all': async () => {
+    if (linkBlock()) return;
     if (!(await ask(S.isSample ? 'Apagar os dados de exemplo e começar do zero?' : 'Apagar todos os seus dados deste navegador? Isso não tem volta.', 'Apagar tudo', true))) return;
     const keep = S.settings; S = defaultState(); S.settings = Object.assign(S.settings, keep);
     UI.bank = 'all'; UI.cardId = null; UI.invoice = null; UI.tab = 'dados';
     save(); render(); window.scrollTo(0, 0); toast('Tudo limpo. Comece cadastrando um banco.');
+  },
+  'link-connect': async () => {
+    const port = parseInt($('#lk-port').value, 10), code = $('#lk-code').value.trim();
+    if (!(port > 0 && port < 65536) || code.length < 10) return toast('Confira a porta e o código que o bity mandou.');
+    if (!S.isSample && !S.source && S.tx.length && !(await ask('Conectar ao bity? Os dados que estão no app serão trocados pelos do bot. Faça um backup antes, se quiser guardar.', 'Conectar', true))) return;
+    S.settings.link = {port, code}; LINK.status = 'off'; save();
+    if (await linkSync(true)){ UI.tab = 'resumo'; render(); window.scrollTo(0, 0); toast('Conectado ao bity'); }
+    else { const msg = LINK.msg; delete S.settings.link; LINK.status = 'off'; save(); render(); toast(msg); }
+  },
+  'link-sync': () => linkSync(false),
+  'link-off': async () => {
+    if (!(await ask('Desconectar do bity? O app guarda a última cópia dos dados, mas deixa de mandar lançamentos para o bot.', 'Desconectar', true))) return;
+    delete S.settings.link; LINK.status = 'off'; save(); render(); toast('Desconectado');
   },
   'close-sheet': () => closeSheet()
 };
@@ -1692,6 +1830,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { 
 if (!load()){ sampleState(); save(); }
 applyTheme();
 render();
+if (linked()) linkSync(true);
 </script>
 
 <script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(function(){});</script>
